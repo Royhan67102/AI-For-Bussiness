@@ -1,0 +1,297 @@
+{
+  "name": "My workflow 6",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5f367e70-f1cc-4a40-89e6-19061d30b596",
+      "name": "Telegram Trigger",
+      "webhookId": "966d85a2-3e17-491d-926b-0f98c342a85f",
+      "credentials": {
+        "telegramApi": {
+          "id": "MnCyvp1NVXDOUsFG",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "227365f9-f05c-4b31-88b0-4721dba0c901",
+              "name": "chat",
+              "value": "={{$json[\"message\"][\"text\"]}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "d701b3cc-d5b1-4589-9d90-b4e2e1377b36",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e342fc80-d37e-4ff9-a628-e48eeee19bfd",
+              "leftValue": "={{$json.message.text.toLowerCase()}}",
+              "rightValue": "=seo",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "b803f1a0-a6fa-4733-8502-9332cef34767",
+              "leftValue": "={{$json.message.text.toLowerCase()}}",
+              "rightValue": "email",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        416,
+        0
+      ],
+      "id": "9fcf7af3-0012-406d-949f-b6246e35a479",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
+        "options": {
+          "systemMessage": "Anda adalah Asisten Spesialis Digital Marketing.\n\nTugas Anda adalah menjawab pertanyaan pengguna HANYA berdasarkan data yang ditemukan di Google Sheets.\n\nAturan:\n1. Gunakan informasi dari Google Sheets sebagai sumber utama.\n2. Jika informasi tidak ditemukan di Google Sheets, jawab:\n   \"Maaf, informasi tersebut tidak tersedia dalam database kami.\"\n3. Jangan menggunakan pengetahuan umum model.\n4. Fokus hanya pada topik:\n   - SEO\n   - Email Marketing"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        624,
+        -96
+      ],
+      "id": "03f11afa-90fe-43de-8239-c1edc53939ab",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Read FAQ data about SEO and Email Marketing from a Google Sheets document.\n\nThe sheet contains two columns:\nquestion\nanswer\n\nReturn the most relevant answer for the user's question.",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1Chk-d5IM8aW2LyUfkvRyHZ2-DE1RkmknRCuVzg2zV_Q/edit?usp=sharing",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Chk-d5IM8aW2LyUfkvRyHZ2-DE1RkmknRCuVzg2zV_Q/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        800,
+        192
+      ],
+      "id": "b8a80a3b-6b10-4912-8c9e-470d87e8a850",
+      "name": "Get row(s) in sheet in Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "RtasfAftTmQBDNdL",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{$json.message.chat.id}}",
+        "text": "=Halo 👋  Saya adalah chatbot spesialis SEO dan Email Marketing.  Silakan tanyakan pertanyaan yang berkaitan dengan:  \n• SEO \n• Email Marketing  Contoh pertanyaan: \n\"Apa itu SEO?\" \n\"Apa manfaat Email Marketing?\"",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        416,
+        -192
+      ],
+      "id": "b5731c89-2013-4c5b-9e91-51a0fff9c1b2",
+      "name": "false message",
+      "webhookId": "109064d6-df74-46d7-af63-58681d48c73c",
+      "credentials": {
+        "telegramApi": {
+          "id": "MnCyvp1NVXDOUsFG",
+          "name": "Telegram account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        624,
+        144
+      ],
+      "id": "b15e5ac4-b9df-4f52-bc5f-361c490e72af",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "E6e3Ur9LO5E4K7EF",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{$node[\"Telegram Trigger\"].json[\"message\"][\"chat\"][\"id\"]}}",
+        "text": "={{$json.output}}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        976,
+        -96
+      ],
+      "id": "82636fcd-57c6-4efd-bd0c-a8748ac6f313",
+      "name": "output message",
+      "webhookId": "92d80e1c-d20a-4371-a181-ce0d8db8403c",
+      "credentials": {
+        "telegramApi": {
+          "id": "MnCyvp1NVXDOUsFG",
+          "name": "Telegram account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "false message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "output message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "7f714614-8885-439b-b364-ee567aaaaf16",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7b034538410f2eec92bdf7a606ce4680aa6d61de897b91dde6a781f8ae255aa4"
+  },
+  "id": "VPmsZ232BRjuP1ih",
+  "tags": []
+}
