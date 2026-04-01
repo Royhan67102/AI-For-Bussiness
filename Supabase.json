@@ -1,0 +1,336 @@
+{
+  "name": "Supabase",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "58910199-74e6-4263-94b0-4422b4c9d4fe",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1LNLclgoA0jOJuO-CJwAtZDzBX_f-fOcV",
+          "mode": "list",
+          "cachedResultName": "Panduan Penulisan Ilmiah Tugas Akhir Skripsi.pdf",
+          "cachedResultUrl": "https://drive.google.com/file/d/1LNLclgoA0jOJuO-CJwAtZDzBX_f-fOcV/view?usp=drivesdk"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "3ad72c6a-3acd-4664-a506-d4fa7bc340a9",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "Al5gV0Eq0ujQ0Lrn",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "data_final",
+          "mode": "list",
+          "cachedResultName": "data_final"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        416,
+        0
+      ],
+      "id": "0f266ca5-4346-4a9e-b04c-826f924c672d",
+      "name": "Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "TGrF3iSQZxG1crwm",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "textSplittingMode": "custom",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        640,
+        144
+      ],
+      "id": "ff4ea207-2540-4ea6-9f38-14a9891dcb38",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "public": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -32,
+        368
+      ],
+      "id": "6d047c38-fda3-43f1-bb4f-80f58600b1aa",
+      "name": "When chat message received",
+      "webhookId": "94c149c5-e311-4d15-9004-e4d0d45e5229"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput || $json.message || \"halo\" }}",
+        "options": {
+          "systemMessage": "Kamu adalah asisten ahli yang membantu penulisan ilmiah Tugas Akhir (TA). Tugas utamamu adalah mencari jawaban di dalam database menggunakan tool 'Supabase Vector Store'.\n\nAturan:\n\n1. Selalu gunakan informasi yang didapat dari tool untuk menjawab.\n\n2. Jika informasi tersedia, jelaskan dengan bahasa yang mudah dipahami dan edukatif.\n\n3. Jika informasi benar-benar tidak ditemukan di database setelah menggunakan tool, jawablah: 'Maaf, saya belum dapat menjawab karena informasi tersebut tidak ditemukan dalam dokumen panduan yang tersedia.'\n\n4. Jangan memberikan saran di luar konteks dokumen panduan akademik yang ada."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        176,
+        368
+      ],
+      "id": "e88693c5-2e30-4ecd-8ca1-4f2675d191f9",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Panggil Tool Supabase Vector Store ini untuk mendapatkan informasi panduan menulis bab 1 tulisan ilmiah.",
+        "tableName": {
+          "__rl": true,
+          "value": "data_final",
+          "mode": "list",
+          "cachedResultName": "data_final"
+        },
+        "options": {
+          "queryName": "match_data_final"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        544,
+        464
+      ],
+      "id": "c213b257-14c4-4a7b-a5d0-699ebd3c1e48",
+      "name": "Supabase Vector Store1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "TGrF3iSQZxG1crwm",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.sessionId || $json.chatId || \"default-session\" }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        576
+      ],
+      "id": "73e2d4c4-b30b-41d8-9550-f541e7507e2a",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "CsRGjWdmwFBpEC38",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chunkOverlap": 100,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        960,
+        272
+      ],
+      "id": "d1017022-5e92-4d7b-ac97-21f952c06041",
+      "name": "Recursive Character Text Splitter"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        352,
+        192
+      ],
+      "id": "857e325e-ed50-4b94-bd9e-cbb5a282796d",
+      "name": "Embeddings Cohere",
+      "credentials": {
+        "cohereApi": {
+          "id": "yfVHnaF8duQnnj3Y",
+          "name": "CohereApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        48,
+        576
+      ],
+      "id": "c664a63e-fde1-449f-a255-d07ba83114f4",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "E6e3Ur9LO5E4K7EF",
+          "name": "Groq account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "Supabase Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "d7ce7c95-c991-4117-9d5d-540d68237692",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7b034538410f2eec92bdf7a606ce4680aa6d61de897b91dde6a781f8ae255aa4"
+  },
+  "id": "JZVAuSc8ipDPOWop",
+  "tags": []
+}
