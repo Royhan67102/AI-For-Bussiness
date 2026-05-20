@@ -1,0 +1,550 @@
+{
+  "name": "Workflow Pengajuan",
+  "nodes": [
+    {
+      "parameters": {
+        "sendTo": "={{ $('Formulir Pengajuan Cuti').item.json['Email Karyawan'] }}",
+        "subject": "Pengajuan Cuti Tidak Dapat Diproses",
+        "message": "=Halo,\n\nMohon maaf, pengajuan cuti Anda tidak dapat diproses karena kuota cuti pada tanggal yang dipilih sudah penuh.\n\nSilakan memilih tanggal lain atau mengajukan ulang di waktu berbeda.\n\nTerima kasih,\nHR System",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1392,
+        -96
+      ],
+      "id": "d75e8836-754a-441a-b471-f9ec261a133a",
+      "name": "hari penuh",
+      "webhookId": "59cd1006-0da8-4f17-a365-fcee1bdb04a5",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "1O8pPCaTWOQYtRl6",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f2575060-4550-45ad-8e46-dd4adeefe9fd",
+              "leftValue": "={{$json.isFull}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1184,
+        0
+      ],
+      "id": "a5077b1d-bcfc-46d2-b906-973cb761156d",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const formData = $('Formulir Pengajuan Cuti').first().json;\n\nconst currentRequestId =\n$('Validasi Cuti').first().json.requestId;\n\nconst startDate = new Date(formData[\"Tanggal Mulai\"]);\nconst endDate = new Date(formData[\"Tanggal Selesai\"]);\n\nconst existing = items;\n\nlet count = 0;\n\nfor (const item of existing) {\n\n  const data = item.json;\n\n  // skip request sendiri\n  if (data.ID_Request === currentRequestId) {\n    continue;\n  }\n\n  // hanya hitung pending + approved\n  if (\n    data.Status !== \"Approved\" &&\n    data.Status !== \"Rejected\"\n  ) {\n    continue;\n  }\n\n  if (!data.Tanggal_Mulai || !data.Tanggal_Selesai) {\n    continue;\n  }\n\n  const existingStart = new Date(data.Tanggal_Mulai);\n  const existingEnd = new Date(data.Tanggal_Selesai);\n\n  const overlap =\n    existingStart <= endDate &&\n    existingEnd >= startDate;\n\n  if (overlap) {\n    count++;\n  }\n}\n\nconst maxQuota = 2;\n\nconsole.log(\"Jumlah cuti overlap:\", count);\n\nreturn [{\n  json: {\n    ...formData,\n    cutiCount: count,\n    isFull: count >= maxQuota\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        0
+      ],
+      "id": "8381a8b5-0ae4-4a86-97f0-334903bc15ab",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "10TUkk7Tw6vRGXeAOu2wailXeWkHB_Blx39IV7ECsoBM",
+          "mode": "list",
+          "cachedResultName": "Cuti Karyawan",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/10TUkk7Tw6vRGXeAOu2wailXeWkHB_Blx39IV7ECsoBM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2021955196,
+          "mode": "list",
+          "cachedResultName": "log pengajuan",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/10TUkk7Tw6vRGXeAOu2wailXeWkHB_Blx39IV7ECsoBM/edit#gid=2021955196"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        832,
+        0
+      ],
+      "id": "b0b2d04d-8631-49bd-99cc-52c49ab91c04",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "RtasfAftTmQBDNdL",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Cuti Karyawan').item.json.Manager_Email }}",
+        "subject": "=Permohonan Cuti  {{ $('Validasi Cuti').item.json['Jenis Cuti'] }}",
+        "message": "=<p>Halo Manager,</p>\n\n<p>Ada pengajuan cuti baru yang membutuhkan persetujuan Anda:</p>\n\n<ul>\n  <li><strong>Nama:</strong> {{ $('Validasi Cuti').item.json.Nama_Lengkap }}</li>\n  <li><strong>Email:</strong> {{ $('Validasi Cuti').item.json['Email Karyawan'] }}</li>\n  <li><strong>Tanggal:</strong> {{ $('Validasi Cuti').item.json['Tanggal Mulai'] }} s.d {{ $('Validasi Cuti').item.json['Tanggal Selesai'] }}</li>\n  <li><strong>Total Durasi:</strong> {{ $('Validasi Cuti').item.json.durationRequested }} Hari</li>\n  <li><strong>Alasan:</strong> {{ $('Validasi Cuti').item.json['Keterangan '] }}</li>\n</ul>\n\n<p>Silakan klik keputusan Anda:</p>\n\n<p>\n  <a href=\"https://n8n-t1ynrrxsbamu.jkt1.sumopod.my.id/webhook/approval-handler?status=approved&email={{ $('Validasi Cuti').item.json['Email Karyawan'] }}&days={{ $('Validasi Cuti').item.json.durationRequested }}&id={{ $('Validasi Cuti').item.json.requestId }}\" \n     style=\"background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 15px; display: inline-block;\">\n     ✅ SETUJUI\n  </a>\n\n  <a href=\"https://n8n-t1ynrrxsbamu.jkt1.sumopod.my.id/webhook/approval-handler?status=rejected&email={{ $('Validasi Cuti').item.json['Email Karyawan'] }}&days={{ $('Validasi Cuti').item.json.durationRequested }}&id={{ $('Validasi Cuti').item.json.requestId }}\" \n     style=\"background-color: #f44336; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;\">\n     ✖️ TOLAK\n  </a>\n</p>\n\n<p><small>Link ini menggunakan environment TEST. Pastikan n8n workflow 'Approval Handler' sedang aktif (Execute) saat diklik.</small></p>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1696,
+        64
+      ],
+      "id": "ea25d134-d782-4cdc-8ab9-40699551c4df",
+      "name": "Email ke Manager",
+      "webhookId": "139fcff0-dea9-45ef-89c8-947f67adb0b9",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ncpginmW7tcwU6FM",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Formulir Pengajuan Cuti').item.json['Email Karyawan'] }}",
+        "subject": "Pengajuan Cuti Ditolak - Saldo Tidak Cukup",
+        "message": "=Halo ,{{ $('Validasi Cuti').item.json.Nama_Lengkap }}\n\nPengajuan cuti Anda untuk tanggal {{ $('Validasi Cuti').item.json['Tanggal Mulai'] }} s/d {{ $('Validasi Cuti').item.json['Tanggal Selesai'] }} DITOLAK secara otomatis oleh sistem.\n\nAlasan: Sisa saldo cuti Anda ({{ $json.Saldo_Cuti }} hari) tidak mencukupi untuk pengajuan {{ $('Validasi Cuti').item.json.durationRequested }} hari.\n\nSalam,\nHR Bot\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1696,
+        208
+      ],
+      "id": "dee41bd8-d562-49ac-9241-4294bfa25edd",
+      "name": "Email cuti tidak cukup",
+      "webhookId": "91f02ab6-4ddb-495b-9809-45d12a4bca92",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "ncpginmW7tcwU6FM",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f2575060-4550-45ad-8e46-dd4adeefe9fd",
+              "leftValue": "={{ $('Validasi Cuti').item.json.isApprovedSystem }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1488,
+        128
+      ],
+      "id": "e79848c2-ced9-4cc4-93de-85906d7f0a59",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "10TUkk7Tw6vRGXeAOu2wailXeWkHB_Blx39IV7ECsoBM",
+          "mode": "list",
+          "cachedResultName": "Cuti Karyawan",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/10TUkk7Tw6vRGXeAOu2wailXeWkHB_Blx39IV7ECsoBM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2021955196,
+          "mode": "list",
+          "cachedResultName": "log pengajuan",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/10TUkk7Tw6vRGXeAOu2wailXeWkHB_Blx39IV7ECsoBM/edit#gid=2021955196"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID_Request": "={{ $json.requestId }}",
+            "Email_Karyawan": "={{ $json['Email Karyawan'] }}",
+            "Timestamp": "={{ $json.submittedAt }}",
+            "Jenis_Cuti": "={{ $json['Jenis Cuti'] }}",
+            "Tanggal_Mulai": "={{ $json['Tanggal Mulai'] }}",
+            "Tanggal_Selesai": "={{ $json['Tanggal Selesai'] }}",
+            "Durasi": "={{ $json.durationRequested }}",
+            "Alasan": "={{ $json['Keterangan '] }}",
+            "Status": "=Pending"
+          },
+          "matchingColumns": [
+            "ID_Request"
+          ],
+          "schema": [
+            {
+              "id": "ID_Request",
+              "displayName": "ID_Request",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email_Karyawan",
+              "displayName": "Email_Karyawan",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Jenis_Cuti",
+              "displayName": "Jenis_Cuti",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Tanggal_Mulai",
+              "displayName": "Tanggal_Mulai",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Tanggal_Selesai",
+              "displayName": "Tanggal_Selesai",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Durasi",
+              "displayName": "Durasi",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Alasan",
+              "displayName": "Alasan",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        624,
+        0
+      ],
+      "id": "0b80962c-8e8b-46fb-a3d0-3af3252454e4",
+      "name": "Update sheet log",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "RtasfAftTmQBDNdL",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Ambil Data Karyawan dari Google Sheets\nconst employeeData = items[0].json;\n\n// 2. Ambil Data Form Pengajuan\nconst formData = $('Formulir Pengajuan Cuti').first().json;\n\n// ======================\n// DAFTAR HARI LIBUR\n// ======================\n\nconst holidays = [\n  \"2026-01-01\",\n  \"2026-03-19\",\n  \"2026-03-20\",\n  \"2026-05-01\",\n  \"2026-05-14\",\n  \"2026-05-15\",\n  \"2026-12-25\"\n];\n\n// ======================\n// AMBIL TANGGAL CUTI\n// ======================\n\nconst start = DateTime.fromISO(formData[\"Tanggal Mulai\"]);\nconst end = DateTime.fromISO(formData[\"Tanggal Selesai\"]);\n\n// ======================\n// HITUNG HARI KERJA\n// ======================\n\nlet current = start;\nlet workingDays = 0;\n\nwhile (current <= end) {\n\n  const weekday = current.weekday;\n\n  // 6 = Sabtu\n  // 7 = Minggu\n\n  const currentDate = current.toISODate();\n\n  const isWeekend =\n    weekday === 6 || weekday === 7;\n\n  const isHoliday =\n    holidays.includes(currentDate);\n\n  // Hitung hanya hari kerja\n  if (!isWeekend && !isHoliday) {\n    workingDays++;\n  }\n\n  // Pindah ke hari berikutnya\n  current = current.plus({ days: 1 });\n}\n\n// ======================\n// VALIDASI SALDO CUTI\n// ======================\n\nconst currentBalance =\n  parseInt(employeeData[\"Saldo_Cuti\"]);\n\nconst hasEnoughBalance =\n  currentBalance >= workingDays;\n\n// ======================\n// GENERATE ID REQUEST\n// ======================\n\nconst uniqueId =\n  'REQ-' + Date.now();\n\n// ======================\n// OUTPUT\n// ======================\n\nreturn [\n  {\n    json: {\n      ...employeeData,\n      ...formData,\n\n      durationRequested: workingDays,\n\n      isApprovedSystem: hasEnoughBalance,\n\n      message: hasEnoughBalance\n        ? \"Saldo Cukup\"\n        : \"Saldo Tidak Cukup\",\n\n      requestId: uniqueId\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "329f1636-ad61-4925-907a-09aad3ae1fc3",
+      "name": "Validasi Cuti"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "10TUkk7Tw6vRGXeAOu2wailXeWkHB_Blx39IV7ECsoBM",
+          "mode": "list",
+          "cachedResultName": "Cuti Karyawan",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/10TUkk7Tw6vRGXeAOu2wailXeWkHB_Blx39IV7ECsoBM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/10TUkk7Tw6vRGXeAOu2wailXeWkHB_Blx39IV7ECsoBM/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        0
+      ],
+      "id": "f52c9f1d-e10f-405c-8bbd-6e05f73180b6",
+      "name": "Cuti Karyawan",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "RtasfAftTmQBDNdL",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "Formulir Pengajuan Cuti",
+        "formDescription": "Silahkan isi detail cuti dan pastikan tanggal sesuai.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Email Karyawan",
+              "fieldName": "Email Karyawan",
+              "placeholder": "Contoh : ryhn@gmail.com",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Jenis Cuti",
+              "fieldType": "dropdown",
+              "fieldName": "Jenis Cuti",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Cuti Tahunan"
+                  },
+                  {
+                    "option": "Cuti Sakit"
+                  },
+                  {
+                    "option": "Cuti Tanpa Bayaran"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Tanggal Mulai",
+              "fieldType": "date",
+              "fieldName": "Tanggal Mulai",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Tanggal Selesai",
+              "fieldType": "date",
+              "fieldName": "Tanggal Selesai",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Keterangan ",
+              "fieldName": "Keterangan ",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        0
+      ],
+      "id": "c031f57f-63e0-4375-92fb-98dbea6bd834",
+      "name": "Formulir Pengajuan Cuti",
+      "webhookId": "95269d13-c11b-40aa-8740-9496596f2d12"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "hari penuh",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Email ke Manager",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Email cuti tidak cukup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update sheet log": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validasi Cuti": {
+      "main": [
+        [
+          {
+            "node": "Update sheet log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cuti Karyawan": {
+      "main": [
+        [
+          {
+            "node": "Validasi Cuti",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formulir Pengajuan Cuti": {
+      "main": [
+        [
+          {
+            "node": "Cuti Karyawan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "19d8e876-2ff7-486d-8211-ac2e9229fa90",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7b034538410f2eec92bdf7a606ce4680aa6d61de897b91dde6a781f8ae255aa4"
+  },
+  "id": "YsZX8gdHTTZX6ZTj",
+  "tags": []
+}
